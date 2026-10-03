@@ -13,7 +13,7 @@ Testováno na Ubuntu 24.04 / 26.04 LTS.
 | 2 | MATE Desktop | `steps/02-mate-desktop.sh` | bez snap/firefox, Marco tiling |
 | 3 | Google Chrome | `steps/03-chrome.sh` | přes apt repo (auto-update) |
 | 4 | Node.js 22 + Claude Code | `steps/04-claude-code.sh` | bez sudo, do ~/.local/bin |
-| 5 | Sudo timeout 180 min | `steps/05-sudo-timeout.sh` | výchozí je 15 min |
+| 5 | Sudo timeout 3600 min | `steps/05-sudo-timeout.sh` | výchozí je 15 min |
 | 6 | SSH klíč (jz-work → nový stroj) | `steps/06-ssh-key.sh` | bezhelslový přístup |
 | 7 | Česká klávesnice (MATE) | `steps/07-czech-keyboard.sh` | jen `cz` bez varianty! |
 | 8 | Vstupní drivery | `steps/08-input-drivers.sh` | pokud nefunguje klávesnice/touchpad |
@@ -41,6 +41,19 @@ sudo bash steps/02-mate-desktop.sh
 
 ## Poznámky
 
+### Upgrade 24.04 → 26.04
+- Zkušenosti, rizika a nálezy z upgradu serveru base7: [`docs/upgrade-24.04-to-26.04.md`](docs/upgrade-24.04-to-26.04.md).
+
+### Čištění balíčků (krok 1) — rizika
+- **`python3-apport` neodstraňovat.** Metabalíček `xserver-xorg` na něm v Ubuntu 26.04 závisí — jeho purge
+  odstraní i `xorg` a `xserver-xorg` a následný `autoremove` může smazat X server.
+- Purge `cloud-init` / `apport` / `multipath-tools` / `snapd` odstraní metabalíček `ubuntu-server-minimal`,
+  purge `packagekit` odstraní `software-properties-common` (`add-apt-repository`). Skript proto nejdřív
+  označí jejich závislosti jako ručně instalované, jinak by je `autoremove` smazal (včetně `openssh-server`).
+- `autoremove` skript jen nasimuluje a vypíše seznam — provede se až po potvrzení.
+- **Automatické aktualizace (`unattended-upgrades`) standard odstraňuje.** Bezpečnostní opravy pak
+  nepřicházejí samy: pravidelně `sudo apt update && sudo apt full-upgrade`.
+
 ### Snapd
 - Neinstalovat. Při instalaci MATE použít `--no-install-recommends`.
 - Pokud už je nainstalován: viz `steps/01-cleanup.sh`.
@@ -54,7 +67,8 @@ sudo bash steps/02-mate-desktop.sh
 - Správně: `gsettings set ... layouts "['cz']"` (bez varianty).
 
 ### Sudo timeout
-- Výchozích 15 min je málo při dlouhých sezeních. Standard: 180 min.
+- Výchozích 15 min je málo při dlouhých sezeních. Standard: 3600 min (sjednoceno 2026-10-03).
+- Ubuntu 26.04 používá `sudo-rs` — viz poznámky k upgradu (zástupné znaky v sudoers).
 
 ### Screenshoty — mate-screenshot zamrzá na "Save" (glycin bug)
 - **Příznak:** `Shift+PrtScr` → výběr oblasti proběhne, "Copy to Clipboard" funguje,

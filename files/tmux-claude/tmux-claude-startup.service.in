@@ -1,0 +1,21 @@
+[Unit]
+Description=Claude Code tmux session startup, see ~@USER@/.local/bin/tmux-claude-startup.sh
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=@USER@
+Environment=HOME=@HOME@
+Environment=PATH=@HOME@/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=LANG=C.UTF-8
+Environment=SHELL=/bin/bash
+ExecStart=@HOME@/.local/bin/tmux-claude-startup.sh
+RemainAfterExit=yes
+# The tmux server started here must survive this oneshot unit.
+KillMode=process
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

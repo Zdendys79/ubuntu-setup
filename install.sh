@@ -33,6 +33,8 @@ run_step 5 "Sudo timeout 3600 min"           "05-sudo-timeout.sh"
 run_step 6 "SSH klic (jz-work)"              "06-ssh-key.sh"
 run_step 7 "Ceska klavesnice MATE"           "07-czech-keyboard.sh"
 run_step 8 "Vstupni drivery"                 "08-input-drivers.sh"
+run_step 9 "Oprava screenshotu (glycin)"     "09-screenshot-glycin-fix.sh"
+run_step 10 "Obnova Claude v tmux"          "10-tmux-claude-restore.sh"
 
 echo ""
 echo "=== Hotovo! ==="

@@ -87,5 +87,5 @@ Výchozí datový adresář je nově `/var/lib/mariadb`. Instalační skript př
 - Uživatelské systemd služby, které byly kdysi zapnuté (např. druhá instance Syncthingu), se po upgradu
   znovu rozběhnou — nežádoucí služby `systemctl --user mask`.
 - `/etc/apt/apt.conf.d/zzzz-temp-installer-unattended-upgrade` je pozůstatek instalátoru — lze smazat.
-- Obnova tmux session po restartu: snapshot (`tmux list-panes -a`) + `@reboot` skript v crontabu,
-  příkazy jen vepsat (`send-keys -l`), nespouštět.
+- Obnova tmux session po restartu: viz [`tmux-claude-restore.md`](tmux-claude-restore.md) (krok 10).
+  Pro samotný upgrade lze příkazy jen vepsat bez spuštění — automatická obnova je spouští.

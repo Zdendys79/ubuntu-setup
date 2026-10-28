@@ -1,0 +1,6 @@
+[Unit]
+Description=Snapshot running Claude instances in tmux (cwd + conversation id)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 %h/.local/bin/tmux-claude-snapshot.py

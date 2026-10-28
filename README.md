@@ -18,6 +18,7 @@ Testováno na Ubuntu 24.04 / 26.04 LTS.
 | 7 | Česká klávesnice (MATE) | `steps/07-czech-keyboard.sh` | jen `cz` bez varianty! |
 | 8 | Vstupní drivery | `steps/08-input-drivers.sh` | pokud nefunguje klávesnice/touchpad |
 | 9 | Oprava screenshotů (glycin freeze) | `steps/09-screenshot-glycin-fix.sh` | mate-screenshot zamrzne na Save |
+| 10 | Obnova Claude v tmux po restartu | `steps/10-tmux-claude-restore.sh` | snapshot à 5 min, `--resume` + `--remote-control` |
 
 ---
 
@@ -53,6 +54,11 @@ sudo bash steps/02-mate-desktop.sh
 - `autoremove` skript jen nasimuluje a vypíše seznam — provede se až po potvrzení.
 - **Automatické aktualizace (`unattended-upgrades`) standard odstraňuje.** Bezpečnostní opravy pak
   nepřicházejí samy: pravidelně `sudo apt update && sudo apt full-upgrade`.
+
+### Obnova Claude Code v tmux po restartu (krok 10)
+- Každých 5 minut se ukládá, ve kterých složkách běží Claude a s jakou konverzací; po startu se
+  všechny session samy znovu spustí (`--resume <ID> --remote-control "<Projekt> (<stroj>)"`).
+- Podrobně: [`docs/tmux-claude-restore.md`](docs/tmux-claude-restore.md). Připojení: `cl`, `cl <projekt>`.
 
 ### Snapd
 - Neinstalovat. Při instalaci MATE použít `--no-install-recommends`.

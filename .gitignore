@@ -1,0 +1,3 @@
+# Python bytecode cache (created next to the sources by imports and py_compile)
+__pycache__/
+*.py[cod]

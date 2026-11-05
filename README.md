@@ -58,6 +58,8 @@ sudo bash steps/02-mate-desktop.sh
 ### Obnova Claude Code v tmux po restartu (krok 10)
 - Každých 5 minut se ukládá, ve kterých složkách běží Claude a s jakou konverzací; po startu se
   všechny session samy znovu spustí (`--resume <ID> --remote-control "<Projekt> (<stroj>)"`).
+- Claude v `~` neukládá důvěru ke složce (dialog by zastavil autostart) — startup proto před
+  spuštěním zapíše `hasTrustDialogAccepted` do `~/.claude.json`.
 - Podrobně: [`docs/tmux-claude-restore.md`](docs/tmux-claude-restore.md). Připojení: `cl`, `cl <projekt>`.
 
 ### Snapd

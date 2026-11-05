@@ -18,12 +18,40 @@ session_exists() {
         tr '|' '\n' | grep -qx -- "$1"
 }
 
+# Claude Code keeps trust for $HOME only for the running session ("home trust is
+# session-only"), so an unattended start in ~ would hang on the trust dialog. The
+# startup check still honours a persisted projects[<dir>].hasTrustDialogAccepted,
+# so set it before launching (no-op when already set).
+ensure_trusted() {
+    python3 -I - "$1" <<'EOF'
+import json, os, sys
+path = os.path.expanduser("~/.claude.json")
+workdir = os.path.realpath(sys.argv[1])
+try:
+    with open(path) as f:
+        config = json.load(f)
+except (OSError, ValueError):
+    sys.exit(0)
+project = config.setdefault("projects", {}).setdefault(workdir, {})
+if project.get("hasTrustDialogAccepted") is True:
+    sys.exit(0)
+project["hasTrustDialogAccepted"] = True
+tmp = f"{path}.trust-{os.getpid()}"
+with open(tmp, "w") as f:
+    json.dump(config, f, indent=2)
+os.chmod(tmp, os.stat(path).st_mode & 0o777)
+os.replace(tmp, path)
+print(f"[TRUST] {workdir}")
+EOF
+}
+
 log "Starting tmux session setup..."
 
 while IFS=$'\t' read -r name workdir conv_id rc_name companion; do
     if session_exists "$name"; then
         log "[SKIP] Session '$name' already exists"
     else
+        ensure_trusted "$workdir"
         tmux new-session -d -s "$name" -c "$workdir"
         if [ -n "$conv_id" ]; then
             resume="--resume $conv_id"

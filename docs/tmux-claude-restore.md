@@ -48,6 +48,13 @@ Nasazeno na **JZ-work** (původní verze, skripty v `~` s podtržítky: `tmux_cl
   samotné `=<session>` tmux odmítne („can't find pane“).
 - `tmux has-session -t <název>` bez `=` hledá i podle začátku názvu (`claude` najde `claude-1`) —
   proto startup porovnává přesné názvy session i skupin.
+- **Důvěra ke složce (trust dialog):** Claude Code u domovské složky `~` potvrzení důvěry
+  neukládá (v kódu „home trust is session-only“) — platí jen do konce sezení, takže automatický
+  start v `~` by se pokaždé zastavil na dialogu. Kontrola při startu ale přečte uložený
+  `projects["<složka>"].hasTrustDialogAccepted: true` v `~/.claude.json`, proto ho startup
+  (funkce `ensure_trusted`) před spuštěním každé session zapíše (jen když chybí). Důvěra k `~`
+  platí i pro všechny podsložky. Ověřeno na Claude Code 2.1.318 (2026-11-04); kdyby ji novější
+  verze přestala respektovat, spouštět hlavní Claude v podsložce (např. `~/main`).
 - Zahrnuje se jen Claude; ostatní shellové session (kromě doprovodných) se neobnovují.
 - Po upgradu Node.js / Claude Code není potřeba nic měnit — spouští se `~/.local/bin/claude`.
 
@@ -67,3 +74,5 @@ cl sagu                                         # připojit se ke cl-sagu
 - Dřívější řešení na Base7 (`tmux-save.sh` ručně + `@reboot tmux-restore.sh` v crontabu, příkazy jen
   vepsané bez spuštění) se neosvědčilo: snapshot se nedělal automaticky, takže po výpadku proudu
   2026-10-28 se neobnovilo nic. Nahrazeno tímto řešením.
+- 2026-11-04: automatický start v `~` visel na dialogu důvěry ke složce → doplněn `ensure_trusted`
+  (Base7 i JZ-work).

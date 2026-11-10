@@ -70,6 +70,12 @@ sudo bash steps/02-mate-desktop.sh
   se podvrhnout). Sítě: `/etc/sudo-trusted-ssh/networks`. Shell v tmux spuštěném z konzole nebo
   služby se ptá na heslo. Podrobně: [`docs/sudo-trusted-ssh.md`](docs/sudo-trusted-ssh.md).
 
+### MATE bez správce přihlášení (krok 2)
+- `ubuntu-mate-desktop` s `--no-install-recommends` nenainstaluje LightDM (`slick-greeter` je jen
+  doporučený): po kroku 2 není grafické přihlášení na monitoru. Na serverech (base7, base8) je to
+  záměr - plocha přes vzdálený přístup. Pro přihlášení na monitoru: `sudo apt install lightdm
+  slick-greeter`. Kroky 7 a 8 pak LightDM nastaví (bez něj krok 8 hlásí „LightDM neni spusten“).
+
 ### Snapd
 - Neinstalovat. Při instalaci MATE použít `--no-install-recommends`.
 - Pokud už je nainstalován: viz `steps/01-cleanup.sh`.

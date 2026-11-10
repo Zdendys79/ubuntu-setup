@@ -19,6 +19,7 @@ Testováno na Ubuntu 24.04 / 26.04 LTS.
 | 8 | Vstupní drivery | `steps/08-input-drivers.sh` | pokud nefunguje klávesnice/touchpad |
 | 9 | Oprava screenshotů (glycin freeze) | `steps/09-screenshot-glycin-fix.sh` | mate-screenshot zamrzne na Save |
 | 10 | Obnova Claude v tmux po restartu | `steps/10-tmux-claude-restore.sh` | snapshot à 5 min, `--resume` + `--remote-control` |
+| 11 | sudo bez hesla přes SSH klíč (LAN, Tailscale) | `steps/11-sudo-trusted-ssh.sh` | PAM kontrola relace, jinak heslo |
 
 ---
 
@@ -61,6 +62,13 @@ sudo bash steps/02-mate-desktop.sh
 - Claude v `~` neukládá důvěru ke složce (dialog by zastavil autostart) — startup proto před
   spuštěním zapíše `hasTrustDialogAccepted` do `~/.claude.json`.
 - Podrobně: [`docs/tmux-claude-restore.md`](docs/tmux-claude-restore.md). Připojení: `cl`, `cl <projekt>`.
+
+### sudo bez hesla přes SSH klíč (krok 11)
+- Bez hesla jen pro relaci SSH přihlášenou klíčem (nebo certifikátem) z LAN `192.168.7.0/24` nebo
+  Tailscale; konzole, desktop, SSH heslem nebo z internetu se ptají dál.
+- Ověřuje to PAM pomocník `sudo-trusted-ssh` podle relace logind a záznamu sshd v journalu (nedá
+  se podvrhnout). Sítě: `/etc/sudo-trusted-ssh/networks`. Shell v tmux spuštěném z konzole nebo
+  služby se ptá na heslo. Podrobně: [`docs/sudo-trusted-ssh.md`](docs/sudo-trusted-ssh.md).
 
 ### Snapd
 - Neinstalovat. Při instalaci MATE použít `--no-install-recommends`.

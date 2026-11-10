@@ -1,0 +1,5 @@
+# Trusted networks for sudo without a password over SSH (one CIDR per line).
+192.168.7.0/24
+# Tailscale (IPv4 CGNAT range and the Tailscale IPv6 prefix)
+100.64.0.0/10
+fd7a:115c:a1e0::/48

@@ -1,0 +1,138 @@
+#!/usr/bin/python3 -I
+"""PAM helper for sudo (pam_exec, auth "sufficient"): no password for trusted SSH sessions.
+
+Succeeds only when the sudo caller runs inside a logind session that sshd opened for that
+same user after public-key (or certificate) authentication from a trusted network (LAN or
+Tailscale). The session comes from the cgroup of the sudo process and the authentication
+from the journal entry of the session leader (sshd-session), so the caller cannot fake
+either. Any other case exits 1 and sudo falls back to the password prompt.
+Installed as /usr/local/sbin/sudo-trusted-ssh by steps/11-sudo-trusted-ssh.sh.
+"""
+import ipaddress
+import os
+import pwd
+import re
+import subprocess
+import sys
+import syslog
+
+NETS_FILE = "/etc/sudo-trusted-ssh/networks"
+SCOPE_RE = re.compile(r"/session-([^/]+)\.scope$", re.MULTILINE)
+
+
+def log(message: str) -> None:
+    """Write one line to the auth log.
+
+    Args:
+        message: text of the log line.
+    """
+    syslog.openlog("sudo-trusted-ssh", 0, syslog.LOG_AUTHPRIV)
+    syslog.syslog(syslog.LOG_INFO, message)
+
+
+def trusted_networks() -> list[ipaddress.IPv4Network | ipaddress.IPv6Network]:
+    """Read the trusted networks, one CIDR per line ('#' starts a comment).
+
+    Returns:
+        The parsed networks; an empty list when the file is missing.
+    """
+    nets = []
+    try:
+        with open(NETS_FILE, encoding="ascii") as handle:
+            for line in handle:
+                entry = line.split("#", 1)[0].strip()
+                if entry:
+                    nets.append(ipaddress.ip_network(entry, strict=False))
+    except (OSError, ValueError) as exc:
+        log(f"cannot read {NETS_FILE}: {exc}")
+    return nets
+
+
+def session_of(pid: int) -> str | None:
+    """Return the logind session id of a process from its cgroup.
+
+    Args:
+        pid: process id.
+
+    Returns:
+        The session id, or None when the process is not in a session scope.
+    """
+    try:
+        with open(f"/proc/{pid}/cgroup", encoding="ascii") as handle:
+            match = SCOPE_RE.search(handle.read())
+    except OSError as exc:
+        log(f"cannot read cgroup of pid {pid}: {exc}")
+        return None
+    return match.group(1) if match else None
+
+
+def session_prop(session: str, name: str) -> str:
+    """Return one property of a logind session.
+
+    Args:
+        session: session id.
+        name: property name (e.g. Service, RemoteHost).
+
+    Returns:
+        The property value ("" when loginctl fails).
+    """
+    result = subprocess.run(["loginctl", "show-session", session, "-P", name],
+                            capture_output=True, text=True, check=False)
+    return result.stdout.strip() if result.returncode == 0 else ""
+
+
+def key_login(leader: str, user: str, host: str) -> bool:
+    """Tell whether the session leader logged the user in with a public key from host.
+
+    Args:
+        leader: pid of the session leader (sshd-session).
+        user: user name of the session.
+        host: remote address of the session.
+
+    Returns:
+        True when the journal holds the matching "Accepted publickey" line.
+    """
+    result = subprocess.run(["journalctl", "-q", "-b", "-o", "cat", f"_PID={leader}"],
+                            capture_output=True, text=True, check=False)
+    pattern = re.compile(rf"^Accepted publickey for {re.escape(user)} from {re.escape(host)} port \d+ ",
+                         re.MULTILINE)
+    return bool(pattern.search(result.stdout))
+
+
+def main() -> int:
+    """Check the sudo caller.
+
+    Returns:
+        0 for a trusted SSH key session, 1 otherwise.
+    """
+    if os.environ.get("PAM_TYPE") != "auth":
+        return 1
+    caller = os.getppid()
+    try:
+        with open(f"/proc/{caller}/status", encoding="ascii") as handle:
+            uid = int(next(line.split()[1] for line in handle if line.startswith("Uid:")))
+        user = pwd.getpwuid(uid).pw_name
+    except (OSError, StopIteration, KeyError, ValueError) as exc:
+        log(f"cannot identify the caller of pid {caller}: {exc}")
+        return 1
+    session = session_of(caller)
+    if session is None:
+        return 1
+    if session_prop(session, "Service") != "sshd" or session_prop(session, "Name") != user:
+        return 1
+    host = session_prop(session, "RemoteHost")
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return 1
+    if not any(address in net for net in trusted_networks()):
+        return 1
+    leader = session_prop(session, "Leader")
+    if not leader or not key_login(leader, user, host):
+        return 1
+    log(f"sudo without password for {user}: SSH key session {session} from {host}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

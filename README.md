@@ -10,16 +10,20 @@ Testováno na Ubuntu 24.04 / 26.04 LTS.
 | # | Krok | Skript | Poznámka |
 |---|------|--------|----------|
 | 1 | Čistění nepotřebných balíčků | `steps/01-cleanup.sh` | cloud-init, apport, snapd, ... |
-| 2 | MATE Desktop | `steps/02-mate-desktop.sh` | bez snap/firefox, Marco tiling |
+| 2 | XFCE Desktop | `steps/02-xfce-desktop.sh` | bez snap/firefox, bez LightDM (pro Chrome Remote Desktop) |
 | 3 | Google Chrome | `steps/03-chrome.sh` | přes apt repo (auto-update) |
 | 4 | Node.js 22 + Claude Code | `steps/04-claude-code.sh` | bez sudo, do ~/.local/bin |
 | 5 | Sudo timeout 3600 min | `steps/05-sudo-timeout.sh` | výchozí je 15 min |
 | 6 | SSH klíč (jz-work → nový stroj) | `steps/06-ssh-key.sh` | bezhelslový přístup |
-| 7 | Česká klávesnice (MATE) | `steps/07-czech-keyboard.sh` | jen `cz` bez varianty! |
+| 7 | Česká klávesnice | `steps/07-czech-keyboard.sh` | jen `cz` bez varianty! (`/etc/default/keyboard`) |
 | 8 | Vstupní drivery | `steps/08-input-drivers.sh` | pokud nefunguje klávesnice/touchpad |
-| 9 | Oprava screenshotů (glycin freeze) | `steps/09-screenshot-glycin-fix.sh` | mate-screenshot zamrzne na Save |
+| 9 | Oprava screenshotů (glycin freeze) | `steps/09-screenshot-glycin-fix.sh` | jen MATE: mate-screenshot zamrzne na Save (bez MATE se přeskočí) |
 | 10 | Obnova Claude v tmux po restartu | `steps/10-tmux-claude-restore.sh` | snapshot à 5 min, `--resume` + `--remote-control` |
 | 11 | sudo bez hesla přes SSH klíč (LAN, Tailscale) | `steps/11-sudo-trusted-ssh.sh` | PAM kontrola relace, jinak heslo |
+| 12 | Chrome Remote Desktop (XFCE) | `steps/12-chrome-remote-desktop.sh` | přihlášení hostitele kódem z remotedesktop.google.com/headless |
+| 13 | Tailscale | `steps/13-tailscale.sh` | apt repozitář, přihlášení `sudo tailscale up` |
+
+Přechod z dřívějšího MATE na XFCE: `sudo bash extras/remove-mate.sh`, pak krok 2 (XFCE), 7 a 12.
 
 ---
 
@@ -35,7 +39,7 @@ cd ubuntu-setup
 
 # Nebo jednotlivé kroky:
 sudo bash steps/01-cleanup.sh
-sudo bash steps/02-mate-desktop.sh
+sudo bash steps/02-xfce-desktop.sh
 # ...
 ```
 
@@ -70,14 +74,17 @@ sudo bash steps/02-mate-desktop.sh
   se podvrhnout). Sítě: `/etc/sudo-trusted-ssh/networks`. Shell v tmux spuštěném z konzole nebo
   služby se ptá na heslo. Podrobně: [`docs/sudo-trusted-ssh.md`](docs/sudo-trusted-ssh.md).
 
-### MATE bez správce přihlášení (krok 2)
-- `ubuntu-mate-desktop` s `--no-install-recommends` nenainstaluje LightDM (`slick-greeter` je jen
-  doporučený): po kroku 2 není grafické přihlášení na monitoru. Na serverech (base7, base8) je to
-  záměr - plocha přes vzdálený přístup. Pro přihlášení na monitoru: `sudo apt install lightdm
-  slick-greeter`. Kroky 7 a 8 pak LightDM nastaví (bez něj krok 8 hlásí „LightDM neni spusten“).
+### XFCE a Chrome Remote Desktop (kroky 2 a 12)
+- Plocha je XFCE - Chrome Remote Desktop ji doporučuje (MATE dřív, viz `extras/remove-mate.sh`).
+  Krok 2 instaluje `xfce4 xfce4-terminal desktop-base dbus-x11 xscreensaver` bez doporučených
+  balíčků, tedy bez LightDM: na monitoru není grafické přihlášení, plocha jde přes Chrome Remote
+  Desktop (vlastní X session, `/etc/chrome-remote-desktop-session` = `exec /usr/bin/xfce4-session`).
+- Chrome Remote Desktop 157+ už nevytváří skupinu `chrome-remote-desktop` (krok 12 ji použije, jen
+  když existuje). Hostitele přihlásí uživatel sám bez sudo: remotedesktop.google.com/headless ->
+  zkopírovaný příkaz pro Debian spustit na stroji, zadat PIN.
 
 ### Snapd
-- Neinstalovat. Při instalaci MATE použít `--no-install-recommends`.
+- Neinstalovat. Při instalaci plochy (XFCE) použít `--no-install-recommends`.
 - Pokud už je nainstalován: viz `steps/01-cleanup.sh`.
 
 ### Claude Code
@@ -87,6 +94,8 @@ sudo bash steps/02-mate-desktop.sh
 ### Česká klávesnice
 - `variant=qwertz` NEFUNGUJE správně v MATE — způsobuje chyby ve vyhledávání.
 - Správně: `gsettings set ... layouts "['cz']"` (bez varianty).
+- XFCE / Chrome Remote Desktop: krok 7 zapíše `XKBLAYOUT="cz"`, `XKBVARIANT=""` přímo do
+  `/etc/default/keyboard` (`localectl set-x11-keymap` pod sudo-rs přes SSH končí „Access denied“).
 
 ### Sudo timeout
 - Výchozích 15 min je málo při dlouhých sezeních. Standard: 3600 min (sjednoceno 2026-10-03).

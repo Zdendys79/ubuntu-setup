@@ -15,6 +15,12 @@
 
 set -e
 
+# Jen pro MATE (Marco keybinding); XFCE (krok 2) tento krok nepotrebuje.
+if ! command -v marco >/dev/null; then
+  echo "[SKIP] MATE (marco) neni nainstalovan - krok se tyka jen MATE."
+  exit 0
+fi
+
 REAL_USER="${SUDO_USER:-$(logname 2>/dev/null || echo "")}"
 if [ -z "$REAL_USER" ]; then
   echo "[ERROR] Nepodarilo se zjistit uzivatele."

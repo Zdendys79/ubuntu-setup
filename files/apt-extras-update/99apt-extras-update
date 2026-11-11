@@ -1,0 +1,4 @@
+// Update software apt does not manage (Claude Code, VirtualBox Extension Pack) together with
+// apt: after "apt update" and after each dpkg run. See /usr/local/sbin/apt-extras-update.
+APT::Update::Post-Invoke-Success {"[ -x /usr/local/sbin/apt-extras-update ] && /usr/local/sbin/apt-extras-update || true";};
+DPkg::Post-Invoke {"[ -x /usr/local/sbin/apt-extras-update ] && /usr/local/sbin/apt-extras-update || true";};

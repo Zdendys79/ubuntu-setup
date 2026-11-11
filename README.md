@@ -12,7 +12,7 @@ Testováno na Ubuntu 24.04 / 26.04 LTS.
 | 1 | Čistění nepotřebných balíčků | `steps/01-cleanup.sh` | cloud-init, apport, snapd, ... |
 | 2 | XFCE Desktop | `steps/02-xfce-desktop.sh` | bez snap/firefox, bez LightDM (pro Chrome Remote Desktop) |
 | 3 | Google Chrome | `steps/03-chrome.sh` | přes apt repo (auto-update) |
-| 4 | Node.js 22 + Claude Code | `steps/04-claude-code.sh` | bez sudo, do ~/.local/bin |
+| 4 | Node.js 22 + Claude Code | `steps/04-claude-code.sh` | nativní instalace bez sudo, do ~/.local/bin (npm verzi odstraní) |
 | 5 | Sudo timeout 3600 min | `steps/05-sudo-timeout.sh` | výchozí je 15 min |
 | 6 | SSH klíč (jz-work → nový stroj) | `steps/06-ssh-key.sh` | bezhelslový přístup |
 | 7 | Česká klávesnice | `steps/07-czech-keyboard.sh` | jen `cz` bez varianty! (`/etc/default/keyboard`) |
@@ -25,6 +25,7 @@ Testováno na Ubuntu 24.04 / 26.04 LTS.
 | 14 | VirtualBox + Extension Pack | `steps/14-virtualbox.sh` | Oracle repozitář (nejnovější 7.2.x), Secure Boot: podpis modulů + zápis klíče na konzoli |
 | 15 | Syncthing | `steps/15-syncthing.sh` | apt.syncthing.net (stable-v2), uživatelská služba, GUI jen 127.0.0.1:8384 |
 | 16 | Start VM se serverem, uložení stavu při vypnutí | `steps/16-vbox-autostart.sh` | `vbox-autostart.service`, VM označit `--autostart-enabled on` |
+| 17 | Aktualizace programů mimo apt s apt | `steps/17-apt-extras-update.sh` | Claude Code, VirtualBox Extension Pack při `apt update` / `apt upgrade` |
 
 Přechod z dřívějšího MATE na XFCE: `sudo bash extras/remove-mate.sh`, pak krok 2 (XFCE), 7 a 12.
 
@@ -123,7 +124,22 @@ sudo bash steps/02-xfce-desktop.sh
 
 ### Claude Code
 - NIKDY `sudo npm install -g` — vytvoří duplicitní instalaci.
-- Správně: `npm config set prefix ~/.local` pak `npm install -g @anthropic-ai/claude-code`.
+- Instalace je nativní (doporučená Anthropicem, stejná jako na jz-work):
+  `curl -fsSL https://claude.ai/install.sh | bash` jako uživatel, bez sudo ->
+  `~/.local/bin/claude` -> `~/.local/share/claude/versions/<verze>`. Krok 4 dřívější npm instalaci
+  odinstaluje (obě by se přetahovaly o `~/.local/bin/claude`). Node.js zůstává (MCP servery).
+- Dřívější apt hook `99claude-code-update` spouštěl `claude update` jako root, kde Claude není -
+  aktualizace tedy nikdy neproběhla. Nahradil ho krok 17.
+
+### Aktualizace všeho přes apt (krok 17)
+- Programy s vlastním apt repozitářem se aktualizují samy s `sudo apt update && sudo apt
+  full-upgrade`: Google Chrome, Chrome Remote Desktop, Node.js (NodeSource), Tailscale, VirtualBox
+  (Oracle), Syncthing.
+- Co apt nespravuje, obstará `/usr/local/sbin/apt-extras-update`, který apt spouští po `apt update`
+  i po každém běhu dpkg (`/etc/apt/apt.conf.d/99apt-extras-update`, nejvýš jednou za 5 min):
+  - Claude Code: `claude update` jako každý uživatel z `/etc/apt-extras-update/users`,
+  - VirtualBox Extension Pack: po aktualizaci VirtualBoxu nainstaluje Extension Pack stejné verze.
+- apt nikdy neselže kvůli těmto programům; výsledek: `journalctl -t apt-extras-update`.
 
 ### Česká klávesnice
 - `variant=qwertz` NEFUNGUJE správně v MATE — způsobuje chyby ve vyhledávání.

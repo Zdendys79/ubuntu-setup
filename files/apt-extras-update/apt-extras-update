@@ -1,0 +1,68 @@
+#!/bin/bash
+# apt-extras-update - update the software apt does not manage, run by apt itself.
+#
+# Hooked into apt (/etc/apt/apt.conf.d/99apt-extras-update) after "apt update" and after every
+# dpkg run of "apt upgrade" / "apt install", so "sudo apt update && sudo apt full-upgrade" keeps
+# these up to date too:
+#   - Claude Code (native install, ~/.local/bin/claude) of every user listed in
+#     /etc/apt-extras-update/users: "claude update" as that user
+#   - VirtualBox Extension Pack: reinstalled in the version of the installed VirtualBox
+# Runs at most once per 5 minutes (one apt command calls the hooks several times).
+# Never fails apt: every problem is logged (journalctl -t apt-extras-update) and skipped.
+set -uo pipefail
+
+USERS_FILE=/etc/apt-extras-update/users
+STAMP=/run/apt-extras-update.stamp
+MIN_INTERVAL=300
+
+log() {
+    echo "apt-extras-update: $*"
+    logger -t apt-extras-update -- "$*" 2>/dev/null || true
+}
+
+update_claude() {
+    local user home bin out
+    [ -f "$USERS_FILE" ] || return 0
+    while read -r user; do
+        user=${user%%#*}; user=${user//[[:space:]]/}
+        [ -n "$user" ] || continue
+        home=$(getent passwd "$user" | cut -d: -f6)
+        bin="$home/.local/bin/claude"
+        if [ -z "$home" ] || [ ! -x "$bin" ]; then
+            log "Claude Code: $user has no $bin - skipped"
+            continue
+        fi
+        if out=$(timeout 300 runuser -u "$user" -- env HOME="$home" "$bin" update 2>&1); then
+            log "Claude Code ($user): $(echo "$out" | grep -v '^$' | tail -1)"
+        else
+            log "Claude Code ($user): update failed: $(echo "$out" | tail -1)"
+        fi
+    done < "$USERS_FILE"
+}
+
+update_extpack() {
+    local pkg ver have tmp ext
+    command -v VBoxManage >/dev/null || return 0
+    pkg=$(dpkg-query -W -f='${db:Status-Abbrev} ${Package}\n' 'virtualbox-[0-9]*' 2>/dev/null | awk '$1 == "ii" { print $2 }' | tail -1)
+    [ -n "$pkg" ] || return 0
+    ver=$(dpkg-query -W -f='${Version}' "$pkg" | cut -d- -f1)
+    have=$(VBoxManage list extpacks 2>/dev/null | awk '/^Pack no/ { p = ($0 ~ /Oracle VirtualBox Extension Pack/) } p && /^Version:/ { print $2; exit }')
+    [ "$have" = "$ver" ] && return 0
+    ext="Oracle_VirtualBox_Extension_Pack-$ver.vbox-extpack"  # VBoxManage checks the file name
+    tmp=$(mktemp -d)
+    if wget -q -O "$tmp/$ext" "https://download.virtualbox.org/virtualbox/$ver/$ext" \
+        && echo y | VBoxManage extpack install --replace "$tmp/$ext" >/dev/null 2>&1; then
+        log "VirtualBox Extension Pack ${have:-none} -> $ver"
+    else
+        log "VirtualBox Extension Pack $ver: download or install failed (have ${have:-none})"
+    fi
+    rm -rf "$tmp"
+}
+
+if [ -f "$STAMP" ] && [ $(( $(date +%s) - $(stat -c %Y "$STAMP") )) -lt "$MIN_INTERVAL" ]; then
+    exit 0
+fi
+touch "$STAMP"
+update_claude
+update_extpack
+exit 0

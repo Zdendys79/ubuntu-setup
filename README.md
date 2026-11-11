@@ -23,6 +23,7 @@ Testováno na Ubuntu 24.04 / 26.04 LTS.
 | 12 | Chrome Remote Desktop (XFCE) | `steps/12-chrome-remote-desktop.sh` | přihlášení hostitele kódem z remotedesktop.google.com/headless |
 | 13 | Tailscale | `steps/13-tailscale.sh` | apt repozitář, přihlášení `sudo tailscale up` |
 | 14 | VirtualBox + Extension Pack | `steps/14-virtualbox.sh` | Oracle repozitář (nejnovější 7.2.x), Secure Boot: podpis modulů + zápis klíče na konzoli |
+| 15 | Syncthing | `steps/15-syncthing.sh` | apt.syncthing.net (stable-v2), uživatelská služba, GUI jen 127.0.0.1:8384 |
 
 Přechod z dřívějšího MATE na XFCE: `sudo bash extras/remove-mate.sh`, pak krok 2 (XFCE), 7 a 12.
 

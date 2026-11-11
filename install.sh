@@ -39,6 +39,7 @@ run_step 11 "sudo bez hesla pres SSH klic"   "11-sudo-trusted-ssh.sh"
 run_step 12 "Chrome Remote Desktop (XFCE)"   "12-chrome-remote-desktop.sh"
 run_step 13 "Tailscale"                     "13-tailscale.sh"
 run_step 14 "VirtualBox + Extension Pack"    "14-virtualbox.sh"
+run_step 15 "Syncthing"                     "15-syncthing.sh"
 
 echo ""
 echo "=== Hotovo! ==="

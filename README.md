@@ -22,6 +22,7 @@ Testováno na Ubuntu 24.04 / 26.04 LTS.
 | 11 | sudo bez hesla přes SSH klíč (LAN, Tailscale) | `steps/11-sudo-trusted-ssh.sh` | PAM kontrola relace, jinak heslo |
 | 12 | Chrome Remote Desktop (XFCE) | `steps/12-chrome-remote-desktop.sh` | přihlášení hostitele kódem z remotedesktop.google.com/headless |
 | 13 | Tailscale | `steps/13-tailscale.sh` | apt repozitář, přihlášení `sudo tailscale up` |
+| 14 | VirtualBox + Extension Pack | `steps/14-virtualbox.sh` | Oracle repozitář (nejnovější 7.2.x), Secure Boot: podpis modulů + zápis klíče na konzoli |
 
 Přechod z dřívějšího MATE na XFCE: `sudo bash extras/remove-mate.sh`, pak krok 2 (XFCE), 7 a 12.
 
@@ -82,6 +83,21 @@ sudo bash steps/02-xfce-desktop.sh
 - Chrome Remote Desktop 157+ už nevytváří skupinu `chrome-remote-desktop` (krok 12 ji použije, jen
   když existuje). Hostitele přihlásí uživatel sám bez sudo: remotedesktop.google.com/headless ->
   zkopírovaný příkaz pro Debian spustit na stroji, zadat PIN.
+
+### VirtualBox a Secure Boot (krok 14)
+- Ubuntu má starší VirtualBox (26.04: 7.2.6) - krok bere nejnovější 7.2.x z repozitáře Oracle
+  a k němu stejnou verzi Extension Packu (licence Oracle PUEL: zdarma pro osobní a vzdělávací
+  použití). Soubor Extension Packu musí mít původní jméno, jinak VBoxManage hlásí „name mismatch“.
+- Se zapnutým Secure Boot se moduly `vboxdrv` načtou jen podepsané klíčem zapsaným v MOK. Krok
+  vytvoří klíč `/var/lib/shim-signed/mok/MOK.{priv,der}`, moduly podepíše a připraví zápis
+  (`mokutil --import`). Při dalším startu na konzoli stroje: MOK Manager -> Enroll MOK -> Continue
+  -> Yes -> heslo -> Reboot. Bez toho VirtualBox žádný VM nespustí.
+- Heslo jen z malých písmen bez `y`/`z` (MOK Manager má americkou klávesnici). `MOK_PASSWORD_FILE=`
+  ho předá bez dotazu; uložené je na jz-work v `~/.secrets/<stroj>-mok-password.txt`.
+- **Klíč zálohovat mimo stroj** (jz-work `~/.secrets/<stroj>-mok/`): reinstalací se soukromý klíč
+  ztratí a zapsaný klíč v MOK je pak k ničemu (base8: starý „Nyara VirtualBox“). S
+  `MOK_KEY_SRC=<adresář se zálohou>` krok klíč vrátí a nový zápis na konzoli není potřeba.
+- Klíč repozitáře musí být čitelný pro všechny (`chmod 644`): apt ho ověřuje jako uživatel `_apt`.
 
 ### Snapd
 - Neinstalovat. Při instalaci plochy (XFCE) použít `--no-install-recommends`.

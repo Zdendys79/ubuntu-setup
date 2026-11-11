@@ -11,6 +11,9 @@ apt install -y --no-install-recommends xfce4 xfce4-terminal desktop-base dbus-x1
 echo "[INFO] Oznacuji XFCE jako manually installed (ochrana pred kaskadovym odstranim)..."
 apt-mark manual xfce4 xfce4-session xfce4-terminal >/dev/null
 
+echo "[INFO] Start bez grafiky na monitoru (multi-user.target) - plocha jen pres Chrome Remote Desktop..."
+systemctl set-default multi-user.target
+
 if systemctl list-unit-files lightdm.service >/dev/null 2>&1; then
   echo "[INFO] LightDM nalezen - vypinam (Chrome Remote Desktop spousti vlastni X session)..."
   systemctl disable lightdm.service 2>/dev/null || true

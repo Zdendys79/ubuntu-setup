@@ -80,6 +80,9 @@ sudo bash steps/02-xfce-desktop.sh
   Krok 2 instaluje `xfce4 xfce4-terminal desktop-base dbus-x11 xscreensaver` bez doporučených
   balíčků, tedy bez LightDM: na monitoru není grafické přihlášení, plocha jde přes Chrome Remote
   Desktop (vlastní X session, `/etc/chrome-remote-desktop-session` = `exec /usr/bin/xfce4-session`).
+  Výchozí cíl je `multi-user.target`: server běží bez monitoru a periferií, jen se sítí.
+- `extras/remove-mate.sh`: purge MATE nechá apt doplnit chybějící virtuální závislosti z GNOME
+  (`gnome-shell`, `gdm3`) - skript je hned odstraní (`zip`/`unzip` si ponechá).
 - Chrome Remote Desktop 157+ už nevytváří skupinu `chrome-remote-desktop` (krok 12 ji použije, jen
   když existuje). Hostitele přihlásí uživatel sám bez sudo: remotedesktop.google.com/headless ->
   zkopírovaný příkaz pro Debian spustit na stroji, zadat PIN.

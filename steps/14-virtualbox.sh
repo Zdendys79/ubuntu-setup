@@ -23,6 +23,7 @@ wget -q -O- https://www.virtualbox.org/download/oracle_vbox_2016.asc \
 chmod 644 /usr/share/keyrings/oracle-virtualbox-2016.gpg  # apt verifies as _apt (umask 077 would block it)
 echo "deb [arch=amd64 signed-by=/usr/share/keyrings/oracle-virtualbox-2016.gpg] https://download.virtualbox.org/virtualbox/debian $CODENAME contrib" \
   > /etc/apt/sources.list.d/virtualbox.list
+chmod 644 /etc/apt/sources.list.d/virtualbox.list
 apt update -q
 
 SB=no

@@ -22,6 +22,16 @@ else
   apt-get purge -y $MATE_PKGS
 fi
 
+# Purge MATE nahradi virtualni zavislosti (polkit agent, notifikace) balicky GNOME: apt
+# doinstaluje gnome-shell + gdm3 (overeno na base8, Ubuntu 26.04). Hned je zase odstranime.
+GNOME_PKGS=$(dpkg-query -W -f='${db:Status-Abbrev} ${binary:Package}\n' gdm3 gnome-shell \
+             gnome-session-bin gnome-remote-desktop 2>/dev/null | awk '$1 == "ii" { print $2 }' || true)
+if [ -n "$GNOME_PKGS" ]; then
+  echo "[INFO] Odstranuji GNOME, ktery apt doinstaloval misto MATE: $(echo "$GNOME_PKGS" | tr '\n' ' ')"
+  apt-get purge -y $GNOME_PKGS
+fi
+apt-mark manual zip unzip >/dev/null 2>&1 || true
+
 echo "[INFO] Zbytky nastaveni MATE (kroky 7, 9, 10)..."
 rm -rf /etc/lightdm
 rm -f "$REAL_HOME/bin/screenshot-area-safe.sh" \

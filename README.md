@@ -24,6 +24,7 @@ Testováno na Ubuntu 24.04 / 26.04 LTS.
 | 13 | Tailscale | `steps/13-tailscale.sh` | apt repozitář, přihlášení `sudo tailscale up` |
 | 14 | VirtualBox + Extension Pack | `steps/14-virtualbox.sh` | Oracle repozitář (nejnovější 7.2.x), Secure Boot: podpis modulů + zápis klíče na konzoli |
 | 15 | Syncthing | `steps/15-syncthing.sh` | apt.syncthing.net (stable-v2), uživatelská služba, GUI jen 127.0.0.1:8384 |
+| 16 | Start VM se serverem, uložení stavu při vypnutí | `steps/16-vbox-autostart.sh` | `vbox-autostart.service`, VM označit `--autostart-enabled on` |
 
 Přechod z dřívějšího MATE na XFCE: `sudo bash extras/remove-mate.sh`, pak krok 2 (XFCE), 7 a 12.
 
@@ -102,6 +103,19 @@ sudo bash steps/02-xfce-desktop.sh
   ztratí a zapsaný klíč v MOK je pak k ničemu (base8: starý „Nyara VirtualBox“). S
   `MOK_KEY_SRC=<adresář se zálohou>` krok klíč vrátí a nový zápis na konzoli není potřeba.
 - Klíč repozitáře musí být čitelný pro všechny (`chmod 644`): apt ho ověřuje jako uživatel `_apt`.
+
+### VM se serverem (krok 16)
+- `vbox-autostart.service` (systémová služba, `User=` majitel VM): při startu spustí bez okna
+  každý VM s `--autostart-enabled on` (VM s uloženým stavem pokračuje, kde skončil), při vypnutí
+  nebo restartu uloží stav všech běžících VM (i bez autostartu) paralelně, limit 15 min.
+- `--autostart-delay <s>`: čekání před startem VM (rozložení zátěže při startu).
+- Příznak autostartu potřebuje cestu k databázi (`VBoxManage setproperty autostartdbpath`), jinak
+  VBoxManage hlásí „The path to the autostart database is not set“ - krok ji nastaví do
+  `~/.config/VirtualBox/autostart`. Oracle `vboxautostart-service` se vypíná (bez konfigurace
+  nic nedělá, dvojí start nechceme).
+- Řazení `After=user.slice`: při vypnutí se VM uloží dřív, než systemd ukončí přihlášené relace
+  (VM spuštěný z SSH běží pod VBoxSVC té relace).
+- Stav: `vbox-autostart status`. Ověřeno na base8 zkušebním VM: start -> uložení -> obnovení.
 
 ### Snapd
 - Neinstalovat. Při instalaci plochy (XFCE) použít `--no-install-recommends`.

@@ -1,0 +1,20 @@
+[Unit]
+Description=Start VirtualBox VMs of @USER@ at boot, save their state at shutdown
+# After=user.slice: at shutdown this unit stops (saves the VMs) before the user sessions are
+# killed - a VM started from an SSH login runs under a VBoxSVC in that session.
+After=network-online.target vboxdrv.service remote-fs.target user.slice systemd-user-sessions.service
+Wants=network-online.target
+Requires=vboxdrv.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=@USER@
+Environment=HOME=@HOME@
+ExecStart=/usr/local/bin/vbox-autostart start
+ExecStop=/usr/local/bin/vbox-autostart stop
+TimeoutStartSec=15min
+TimeoutStopSec=15min
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,78 @@
+#!/bin/bash
+# vbox-autostart - start the VirtualBox VMs of this user at boot, save their state at shutdown.
+#
+#   vbox-autostart start   start (headless) every VM with "autostart-enabled" on that is not
+#                          running; a VM with a saved state continues where it stopped
+#   vbox-autostart stop    save the state of every running VM (in parallel) - also VMs
+#                          without autostart, so nothing is lost at reboot or power-off
+#   vbox-autostart status  list the VMs with state and autostart flag
+#
+# Run by vbox-autostart.service (system unit, User=<owner of the VMs>). Mark a VM:
+#   VBoxManage modifyvm <vm> --autostart-enabled on [--autostart-delay <s>]
+set -uo pipefail
+
+log() {
+    echo "vbox-autostart: $*"
+}
+
+# One line per VM: "<uuid> <state> <autostart on|off> <delay s> <name>".
+vm_list() {
+    local uuid info
+    VBoxManage list vms | sed -n 's/^".*" {\(.*\)}$/\1/p' | while read -r uuid; do
+        info=$(VBoxManage showvminfo "$uuid" --machinereadable 2>/dev/null) || continue
+        awk -F= -v uuid="$uuid" '
+            { gsub(/"/, "", $2) }
+            $1 == "name" { name = $2 }
+            $1 == "VMState" { state = $2 }
+            $1 == "autostart-enabled" { auto = $2 }
+            $1 == "autostart-delay" { delay = $2 }
+            END { printf "%s %s %s %s %s\n", uuid, state, auto ? auto : "off", delay ? delay : 0, name }
+        ' <<< "$info"
+    done
+}
+
+start_vms() {
+    local uuid state auto delay name rc=0
+    while read -r uuid state auto delay name; do
+        [ "$auto" = on ] || continue
+        if [ "$state" = running ]; then
+            log "$name already running"
+            continue
+        fi
+        [ "${delay:-0}" -gt 0 ] && sleep "$delay"
+        if VBoxManage startvm "$uuid" --type headless >/dev/null 2>&1; then
+            log "$name started (was $state)"
+        else
+            log "ERROR: $name did not start (state $state)"
+            rc=1
+        fi
+    done < <(vm_list)
+    return "$rc"
+}
+
+stop_vms() {
+    local uuid state auto delay name pids=() names=() i rc=0
+    while read -r uuid state auto delay name; do
+        [ "$state" = running ] || [ "$state" = paused ] || continue
+        log "$name: saving state"
+        VBoxManage controlvm "$uuid" savestate >/dev/null 2>&1 &
+        pids+=("$!")
+        names+=("$name")
+    done < <(vm_list)
+    for i in "${!pids[@]}"; do
+        if wait "${pids[$i]}"; then
+            log "${names[$i]}: state saved"
+        else
+            log "ERROR: ${names[$i]}: savestate failed"
+            rc=1
+        fi
+    done
+    return "$rc"
+}
+
+case "${1:-status}" in
+    start) start_vms ;;
+    stop) stop_vms ;;
+    status) vm_list | awk '{ printf "%-20s %-10s autostart=%s delay=%ss\n", $5, $2, $3, $4 }' ;;
+    *) echo "Usage: $0 start|stop|status" >&2; exit 2 ;;
+esac

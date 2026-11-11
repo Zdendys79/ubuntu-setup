@@ -118,6 +118,13 @@ sudo bash steps/02-xfce-desktop.sh
   (VM spuštěný z SSH běží pod VBoxSVC té relace).
 - Stav: `vbox-autostart status`. Ověřeno na base8 zkušebním VM: start -> uložení -> obnovení.
 
+### Virtuální stroje B3 (báze Base2-6, Base8)
+- Standard VM, přesun VM z jiné báze, Chrome Remote Desktop ve VM, myš, pevné rozlišení
+  1366x768 a sdílený disk `S:`: [`docs/b3-virtual-machines.md`](docs/b3-virtual-machines.md).
+- Skripty: `b3/b3-vm-create.sh` (registrace VM z disku podle standardu, kabel odpojený),
+  `b3/b3-vm-remove-crd.sh` (smazání registrace CRD z vypnutého disku), `b3/EnableLinkedConnections.reg`
+  (`S:` i pro programy spuštěné jako správce).
+
 ### Snapd
 - Neinstalovat. Při instalaci plochy (XFCE) použít `--no-install-recommends`.
 - Pokud už je nainstalován: viz `steps/01-cleanup.sh`.
